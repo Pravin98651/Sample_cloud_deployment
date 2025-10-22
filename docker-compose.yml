@@ -1,0 +1,45 @@
+services:
+
+  api:
+    build:
+      context: ./services/users  # updated
+      dockerfile: Dockerfile
+    entrypoint: ['/usr/src/app/entrypoint.sh']
+    volumes:
+      - './services/users:/usr/src/app'  # updated
+    ports:
+      - 5004:5000
+    environment:
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
+      - APP_SETTINGS=src.config.DevelopmentConfig
+      - DATABASE_URL=postgresql://postgres:postgres@api-db:5432/api_dev
+      - DATABASE_TEST_URL=postgresql://postgres:postgres@api-db:5432/api_test
+    depends_on:
+      - api-db
+
+  api-db:
+    build:
+      context: ./services/users/src/db  # updated
+      dockerfile: Dockerfile
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  client:
+    stdin_open: true
+    build:
+      context: ./services/client
+      dockerfile: Dockerfile
+    volumes:
+      - './services/client:/usr/src/app'
+      - '/usr/src/app/node_modules'
+    ports:
+      - 3007:5173
+    environment:
+      - NODE_ENV=development
+      - VITE_API_SERVICE_URL=${VITE_API_SERVICE_URL}
+    depends_on:
+      - api
